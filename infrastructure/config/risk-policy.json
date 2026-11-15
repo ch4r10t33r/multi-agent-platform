@@ -1,0 +1,16 @@
+{
+  "maxOrderNotional": 5000,
+  "maxPositionNotional": 25000,
+  "maxPortfolioNotional": 100000,
+  "maxDailyLoss": 2000,
+  "allowedTickers": ["AAPL", "NVDA", "MSFT", "TSLA"],
+  "allowShortSales": false,
+  "requireHumanApprovalAboveNotional": 2500,
+  "minConfidence": 0.55,
+  "maxSignalAgeMs": 1800000,
+  "maxMarketDataAgeMs": 900000,
+  "paperTradingOnly": true,
+  "priceDeviationTolerance": 0.02,
+  "startingCash": 100000,
+  "currency": "USD"
+}

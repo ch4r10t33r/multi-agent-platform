@@ -1,0 +1,17 @@
+{
+  "name": "@platform/supervisor",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@langchain/langgraph": "^1.5.3",
+    "@platform/common": "workspace:*",
+    "@platform/contracts": "workspace:*",
+    "@platform/execution-agent": "workspace:*",
+    "@platform/research-agent": "workspace:*",
+    "@platform/shared-state": "workspace:*"
+  }
+}

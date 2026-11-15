@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform
+      POSTGRES_DB: platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform -d platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional model server. Without a visible NVIDIA GPU the process exits
+  # and the app keeps the lexicon assessor. GPU hosts also pass
+  # docker-compose.gpu.yml so the device is mounted.
+  sglang:
+    profiles: ["sglang"]
+    image: lmsysorg/sglang:latest
+    ipc: host
+    ports:
+      - "30000:30000"
+    volumes:
+      - sglang-cache:/root/.cache/huggingface
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      SGLANG_MODEL: ${SGLANG_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
+    entrypoint: ["bash", "-lc"]
+    command:
+      - |
+        if ! nvidia-smi -L 2>/dev/null | grep -q 'GPU '; then
+          echo "No NVIDIA GPU visible. SGLang stays stopped and the app uses the lexicon assessor."
+          exit 0
+        fi
+        exec python3 -m sglang.launch_server --model-path "$$SGLANG_MODEL" --host 0.0.0.0 --port 30000
+
+volumes:
+  pgdata:
+  sglang-cache:

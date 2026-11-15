@@ -1,0 +1,27 @@
+{
+  "name": "@platform/common",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./clock": "./src/clock.ts",
+    "./constants": "./src/constants.ts",
+    "./env": "./src/env.ts",
+    "./errors": "./src/errors.ts",
+    "./money": "./src/money.ts",
+    "./path": "./src/path.ts",
+    "./runtime": "./src/runtime.ts"
+  },
+  "dependencies": {
+    "@platform/broker": "workspace:*",
+    "@platform/contracts": "workspace:*",
+    "@platform/database": "workspace:*",
+    "@platform/llm": "workspace:*",
+    "@platform/market-data": "workspace:*",
+    "@platform/observability": "workspace:*",
+    "@platform/risk": "workspace:*",
+    "@platform/shared-state": "workspace:*",
+    "@platform/vector-store": "workspace:*"
+  }
+}

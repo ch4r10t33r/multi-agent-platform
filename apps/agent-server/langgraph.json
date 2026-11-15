@@ -1,0 +1,9 @@
+{
+  "node_version": "22",
+  "graphs": {
+    "research_agent": "../../agents/research-agent/src/graph.ts:graph",
+    "execution_agent": "../../agents/execution-agent/src/graph.ts:graph",
+    "trading_orchestrator": "../../agents/supervisor/src/graph.ts:graph"
+  },
+  "env": "../../.env"
+}

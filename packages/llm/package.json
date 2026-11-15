@@ -1,0 +1,13 @@
+{
+  "name": "@platform/llm",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@platform/common": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}

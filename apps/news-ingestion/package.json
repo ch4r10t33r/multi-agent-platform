@@ -1,0 +1,17 @@
+{
+  "name": "@platform/news-ingestion",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@platform/common": "workspace:*",
+    "@platform/contracts": "workspace:*",
+    "@platform/database": "workspace:*",
+    "@platform/llm": "workspace:*",
+    "@platform/vector-store": "workspace:*",
+    "bullmq": "^5.63.0"
+  }
+}

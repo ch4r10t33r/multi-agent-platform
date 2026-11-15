@@ -1,0 +1,16 @@
+{
+  "name": "@platform/execution-agent",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@langchain/langgraph": "^1.5.3",
+    "@platform/broker": "workspace:*",
+    "@platform/common": "workspace:*",
+    "@platform/contracts": "workspace:*",
+    "@platform/risk": "workspace:*"
+  }
+}

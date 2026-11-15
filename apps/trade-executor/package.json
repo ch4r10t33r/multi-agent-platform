@@ -1,0 +1,15 @@
+{
+  "name": "@platform/trade-executor",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@platform/broker": "workspace:*",
+    "@platform/common": "workspace:*",
+    "@platform/contracts": "workspace:*",
+    "@platform/database": "workspace:*"
+  }
+}
