@@ -27,8 +27,7 @@ x-app-build: &app-build
 services:
   api:
     <<: *app-build
-    command:
-      ["node", "--import", "tsx", "apps/api-gateway/src/index.ts"]
+    command: ["node", "--import", "tsx", "apps/api-gateway/src/index.ts"]
     ports:
       - "3000:3000"
     depends_on:
@@ -52,8 +51,7 @@ services:
 
   ingestion:
     <<: *app-build
-    command:
-      ["node", "--import", "tsx", "apps/news-ingestion/src/worker.ts"]
+    command: ["node", "--import", "tsx", "apps/news-ingestion/src/worker.ts"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,13 +63,7 @@ services:
     <<: *app-build
     profiles: ["tools"]
     command:
-      [
-        "node",
-        "--import",
-        "tsx",
-        "apps/news-ingestion/src/worker.ts",
-        "--once",
-      ]
+      ["node", "--import", "tsx", "apps/news-ingestion/src/worker.ts", "--once"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,12 +73,7 @@ services:
     <<: *app-build
     profiles: ["tools"]
     command:
-      [
-        "node",
-        "--import",
-        "tsx",
-        "apps/trade-executor/src/reconciliation.ts",
-      ]
+      ["node", "--import", "tsx", "apps/trade-executor/src/reconciliation.ts"]
     depends_on:
       postgres:
         condition: service_healthy
