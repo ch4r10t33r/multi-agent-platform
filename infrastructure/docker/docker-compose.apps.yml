@@ -1,0 +1,93 @@
+x-app-environment: &app-environment
+  TRADING_MODE: paper
+  NEWS_PROVIDER: ${NEWS_PROVIDER:-fixture}
+  QUOTE_PROVIDER: ${QUOTE_PROVIDER:-fixture}
+  ANALYST_PROVIDER: ${ANALYST_PROVIDER:-lexicon}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+  OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+  SGLANG_BASE_URL: ${SGLANG_BASE_URL:-http://sglang:30000/v1}
+  SGLANG_MODEL: ${SGLANG_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
+  DATABASE_URL: postgres://platform:platform@postgres:5432/platform
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  PORT: "3000"
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-64}
+
+x-app-build: &app-build
+  build:
+    context: ../..
+    dockerfile: infrastructure/docker/Dockerfile
+  image: multi-agent-platform:local
+  environment:
+    <<: *app-environment
+  init: true
+
+services:
+  api:
+    <<: *app-build
+    command:
+      ["node", "--import", "tsx", "apps/api-gateway/src/index.ts"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  ingestion:
+    <<: *app-build
+    command:
+      ["node", "--import", "tsx", "apps/news-ingestion/src/worker.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ingest-once:
+    <<: *app-build
+    profiles: ["tools"]
+    command:
+      [
+        "node",
+        "--import",
+        "tsx",
+        "apps/news-ingestion/src/worker.ts",
+        "--once",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  reconcile:
+    <<: *app-build
+    profiles: ["tools"]
+    command:
+      [
+        "node",
+        "--import",
+        "tsx",
+        "apps/trade-executor/src/reconciliation.ts",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"

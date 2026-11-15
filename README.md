@@ -43,7 +43,7 @@ curl -X POST http://127.0.0.1:3000/signals \
 
 ## How the programs run
 
-Nothing starts all of the apps together. Each entry under `apps/` is a separate program, and you start the one you need. `pnpm demo` is a fifth, short-lived program: it performs ingestion and research in one process and then exits.
+Locally, each entry under `apps/` is a separate program, and you start the one you need. `pnpm docker:up` starts Postgres, Redis, the API, and the ingestion worker together. `pnpm demo` stays a short-lived program: it performs ingestion and research in one process and then exits.
 
 Two processes share articles, signals, and orders when both are started with the same `DATABASE_URL`. That URL selects Postgres, and the article vectors go in the `market.article_embeddings` pgvector column. With `DATABASE_URL` unset, `connectPlatform` builds a private in-memory store for that process. Data written by the ingestion process is then invisible to the API process.
 
@@ -60,13 +60,13 @@ fetch → embed → store         POST /signals
                                 paper fill in trading.orders
 ```
 
-| Program | How it starts | What it does | How long it runs |
-| --- | --- | --- | --- |
-| `pnpm demo` | `scripts/demo.ts` | Ingests NVDA and TSLA, then runs the orchestrator on `news.updated` inside that same process. Always uses memory, including when `DATABASE_URL` is set. | Exits after printing JSON. |
-| `apps/news-ingestion` | `pnpm ingest:once`, or `pnpm exec tsx apps/news-ingestion/src/worker.ts` | Fetches news for `infrastructure/config/tickers.json`, embeds it, and stores articles. The worker path repeats every five minutes through BullMQ. | `--once` exits. The worker stays up and needs Redis. |
-| `apps/api-gateway` | `pnpm dev:api` | HTTP API on port 3000. `POST /signals` invokes the supervisor graph in this process. `GET /trades` and `GET /portfolios` read the ledger. | Stays up until you stop it. |
-| `apps/agent-server` | No start script in this repo | Re-exports the three graphs. `apps/agent-server/langgraph.json` is the registration file for an external LangGraph server. The demo and the API call the graphs directly and do not boot this package. | Does not listen on a port here. |
-| `apps/trade-executor` | `pnpm reconcile` | Compares the ledger with the paper broker once and prints the report. Paper fills themselves are submitted by the execution agent inside the demo or the API, not by a standing executor process. | Exits after the report. |
+| Program               | How it starts                                                            | What it does                                                                                                                                                                                           | How long it runs                                     |
+| --------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| `pnpm demo`           | `scripts/demo.ts`                                                        | Ingests NVDA and TSLA, then runs the orchestrator on `news.updated` inside that same process. Always uses memory, including when `DATABASE_URL` is set.                                                | Exits after printing JSON.                           |
+| `apps/news-ingestion` | `pnpm ingest:once`, or `pnpm exec tsx apps/news-ingestion/src/worker.ts` | Fetches news for `infrastructure/config/tickers.json`, embeds it, and stores articles. The worker path repeats every five minutes through BullMQ.                                                      | `--once` exits. The worker stays up and needs Redis. |
+| `apps/api-gateway`    | `pnpm dev:api`                                                           | HTTP API on port 3000. `POST /signals` invokes the supervisor graph in this process. `GET /trades` and `GET /portfolios` read the ledger.                                                              | Stays up until you stop it.                          |
+| `apps/agent-server`   | No start script in this repo                                             | Re-exports the three graphs. `apps/agent-server/langgraph.json` is the registration file for an external LangGraph server. The demo and the API call the graphs directly and do not boot this package. | Does not listen on a port here.                      |
+| `apps/trade-executor` | `pnpm reconcile`                                                         | Compares the ledger with the paper broker once and prints the report. Paper fills themselves are submitted by the execution agent inside the demo or the API, not by a standing executor process.      | Exits after the report.                              |
 
 A periodic load into pgvector needs both of these:
 
@@ -81,15 +81,15 @@ Each cycle then upserts `market.articles` and writes 64-dimensional embeddings t
 
 Copy `.env.example` to `.env`. Every setting has a default, so the copy is only needed when you change one.
 
-| Setting | Default | Effect |
-| --- | --- | --- |
-| `TRADING_MODE` | `paper` | Any other value refuses to start. |
-| `NEWS_PROVIDER` | `fixture` | `fixture` uses the stories in `packages/market-data/src/fixture-news.ts`. `yahoo` calls Yahoo Finance's unofficial search endpoint. |
-| `QUOTE_PROVIDER` | `fixture` | `fixture` uses the prices in `packages/market-data/src/fixture-quotes.ts`. `yahoo` calls Yahoo Finance for quotes. |
-| `ANALYST_PROVIDER` | `lexicon` | Scores sentiment in process. `sglang` and `openai` are optional and described below. |
-| `DATABASE_URL` | unset | Unset keeps articles, signals, and orders in memory. Set it to use Postgres. |
-| `REDIS_HOST` | unset | Required only for the scheduled ingestion worker. |
-| `PORT` | `3000` | API port. |
+| Setting            | Default   | Effect                                                                                                                              |
+| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `TRADING_MODE`     | `paper`   | Any other value refuses to start.                                                                                                   |
+| `NEWS_PROVIDER`    | `fixture` | `fixture` uses the stories in `packages/market-data/src/fixture-news.ts`. `yahoo` calls Yahoo Finance's unofficial search endpoint. |
+| `QUOTE_PROVIDER`   | `fixture` | `fixture` uses the prices in `packages/market-data/src/fixture-quotes.ts`. `yahoo` calls Yahoo Finance for quotes.                  |
+| `ANALYST_PROVIDER` | `lexicon` | Scores sentiment in process. `sglang` and `openai` are optional and described below.                                                |
+| `DATABASE_URL`     | unset     | Unset keeps articles, signals, and orders in memory. Set it to use Postgres.                                                        |
+| `REDIS_HOST`       | unset     | Required only for the scheduled ingestion worker.                                                                                   |
+| `PORT`             | `3000`    | API port.                                                                                                                           |
 
 `NEWS_PROVIDER=yahoo` and `QUOTE_PROVIDER=yahoo` call unofficial Yahoo Finance endpoints. Yahoo does not document a general-purpose public news API. Check the current terms, rate limits, and retention rules before enabling them.
 
@@ -100,15 +100,15 @@ set -a && source .env && set +a
 pnpm dev:api
 ```
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | Process status, trading mode, and storage (`memory` or `postgres`). |
-| `POST` | `/signals` | Body `{ "ticker": "NVDA" }`. Builds a signal and, when risk allows, a paper order. |
-| `GET` | `/signals` | Lists stored signals. |
-| `GET` | `/signals/:signalId` | Returns one signal. |
-| `POST` | `/signals/:signalId/approval` | Body `{ "approval": "granted" }` or `{ "approval": "denied" }`. |
-| `GET` | `/trades` | Lists paper orders. |
-| `GET` | `/portfolios` | Cash, positions, and equity. |
+| Method | Path                          | Purpose                                                                            |
+| ------ | ----------------------------- | ---------------------------------------------------------------------------------- |
+| `GET`  | `/health`                     | Process status, trading mode, and storage (`memory` or `postgres`).                |
+| `POST` | `/signals`                    | Body `{ "ticker": "NVDA" }`. Builds a signal and, when risk allows, a paper order. |
+| `GET`  | `/signals`                    | Lists stored signals.                                                              |
+| `GET`  | `/signals/:signalId`          | Returns one signal.                                                                |
+| `POST` | `/signals/:signalId/approval` | Body `{ "approval": "granted" }` or `{ "approval": "denied" }`.                    |
+| `GET`  | `/trades`                     | Lists paper orders.                                                                |
+| `GET`  | `/portfolios`                 | Cash, positions, and equity.                                                       |
 
 Orders above `requireHumanApprovalAboveNotional` in `infrastructure/config/risk-policy.json` (2500 by default) return `PENDING_APPROVAL`. Approve them with `POST /signals/:signalId/approval`.
 
@@ -150,6 +150,36 @@ REDIS_PORT=6379
 Load that file, then start `pnpm dev:api`. Articles, signals, orders, and embeddings are stored in Postgres. The vector index is pgvector. Without `DATABASE_URL`, the same interfaces run in memory and the data disappears when the process exits.
 
 `pnpm reconcile` compares the ledger with the paper broker's order list.
+
+## Run everything with Docker
+
+`pnpm docker:up` builds one image and runs the shared stack. Postgres and Redis come up first, one ingestion cycle writes articles and embeddings into pgvector, then the API and the five-minute worker stay running. The containers use the Docker network names `postgres` and `redis`. A `DATABASE_URL` in `.env` that points at `localhost` is left on the host. Provider settings in `.env` are passed through, so `NEWS_PROVIDER=yahoo` fetches Yahoo Finance inside the ingestion container.
+
+```bash
+pnpm docker:up
+curl http://127.0.0.1:3000/health
+curl -X POST http://127.0.0.1:3000/signals \
+  -H 'content-type: application/json' \
+  -d '{"ticker":"NVDA"}'
+```
+
+`GET /health` reports `storage: postgres` once the API is up. The first `POST /signals` reads the rows written by the startup ingestion cycle.
+
+The scripts under `scripts/docker/` start the pieces on their own:
+
+| Script                        | pnpm command            | What it starts                                                               |
+| ----------------------------- | ----------------------- | ---------------------------------------------------------------------------- |
+| `scripts/docker/up.sh`        | `pnpm docker:up`        | Postgres, Redis, one ingestion cycle, the API, and the ingestion worker.     |
+| `scripts/docker/api.sh`       | `pnpm docker:api`       | Postgres, Redis, and the API.                                                |
+| `scripts/docker/ingestion.sh` | `pnpm docker:ingestion` | Postgres, Redis, and the five-minute worker.                                 |
+| `scripts/docker/ingest.sh`    | `pnpm docker:ingest`    | Postgres, Redis, and one ingestion cycle.                                    |
+| `scripts/docker/reconcile.sh` | `pnpm docker:reconcile` | Postgres and one ledger reconciliation.                                      |
+| `scripts/docker/logs.sh`      | `pnpm docker:logs`      | Follows the API and worker logs. Pass a service name to follow that service. |
+| `scripts/docker/down.sh`      | `pnpm docker:down`      | Stops the stack and keeps the Postgres volume.                               |
+
+`bash scripts/docker/down.sh -v` also deletes the Postgres volume.
+
+The image runs the TypeScript entrypoints with `node --import tsx`. It does not start `apps/agent-server`. Paper orders are still created inside the API process when you call `POST /signals`. The app containers have no NVIDIA device, so news assessment stays on the lexicon even when `ANALYST_PROVIDER=sglang`. The SGLang service remains the optional profile in the section below, and it is not part of `pnpm docker:up`.
 
 ## News assessment
 
