@@ -12,6 +12,6 @@
     "@platform/database": "workspace:*",
     "@platform/llm": "workspace:*",
     "@platform/vector-store": "workspace:*",
-    "bullmq": "^5.63.0"
+    "bullmq": "^6.7.5"
   }
 }
